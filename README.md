@@ -1,5 +1,5 @@
 # Mobile Legends Tools
-> This need Root
+> You need root to run this script
 ---
 ## Features
 - Backup Account ML to External
@@ -18,3 +18,10 @@
 ``` bash
 su -c ./MoLeTo.sh
 ```
+
+## DISCLAIMER
+*WARNING:* MoLeTo is a tool developed for educational and personal use purposes. By using MoLeTo, you understand and agree that:
+
+- MoLeTo is not an official product of Shanghai Moonton and has no affiliation with the company.
+- We do not have permission to use the name, logo, or other intellectual properties of Mobile Legends.
+- Use of MoLeTo is not endorsed or guaranteed by Shanghai Moonton, and may violate the terms of service set by the company.
