@@ -10,12 +10,12 @@
 
 ## Screenshot 
 <div align="center">
-  <img src=./assets/screenshot1.jpg>
+  <img src="./assets/screenshot1.jpg" style="border-radius: 10px; border: 1px solid #ccc;">
 </div>
 
 ## Usage
-! Run this script at the terminal
-``` bash
+Run this script at the terminal
+``` shell
 su -c ./MoLeTo.sh
 ```
 
