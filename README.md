@@ -10,7 +10,7 @@
 
 ## Screenshot 
 <div align="center">
-  <img src="./assets/screenshot1.jpg" style="border-radius: 10px; border: 1px solid #ccc;">
+  <img src="./assets/screenshot1.jpg" alt="screenshot" style="border-radius: 10px;" />
 </div>
 
 ## Usage
