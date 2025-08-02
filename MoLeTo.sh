@@ -1,8 +1,9 @@
 #!/bin/bash
 
 
+# Pastikan skrip dijalankan sebagai root
 if [ "$(id -u)" -ne 0 ]; then
-    echo "[ ! ] No Root Access"
+    echo "[ ! ] Tidak ada akses root. Silakan jalankan sebagai root."
     exit 1
 fi
 
@@ -91,662 +92,485 @@ editFPS() {
   menu "Logs: \n Berhasil unlock FPS Ultra!"
 }
 
-# Mencadangkan akun lama
+# Fungsi untuk mencadangkan akun
 function backup() {
   clear
   header
-  echo -e "\e[94mNew Backup Account!\e[0m"
+  echo -e "${cyan}Cadangkan Akun Baru!${reset}"
   echo " "
-  echo -e "Fungsi:\n"
-  echo " - Menambahkan akun ke ganti akun"
-  echo " - Mencadangkan akun yang belum dikaitkan"
+  echo -e "${yellow}Fungsi:${reset}"
+  echo " - Menyimpan data akun saat ini untuk diganti nanti."
+  echo " - Berguna untuk akun yang belum terhubung platform apapun."
   echo " "
-  echo -e "\e[3m$1 \e[0m"  # Log pesan
-  echo "┌──( Nama Akun: )─[ 0. Back ]"
+  echo -e "\e[3m$1 \e[0m"
+  echo "┌──( Nama Akun: )─[ 0. Kembali ]"
   echo -n "└─❯ "
   read newBackup
   
-  if echo "$folder" | grep -q '/'; then
-    menu "Logs:\n Tidak boleh menggunakan garing(/)"
+  if echo "$newBackup" | grep -q '/'; then
+    menu "Logs:\nNama akun tidak boleh mengandung karakter '/'."
+    return
   fi
   
-  if [ -z "$folder" ]; then
-    menu "Logs: \n invalid input"
-  fi
-  
-  # Memeriksa apakah input kosong
-  if [[ -z "$newBackup" ]]; then
-    echo "Masukkan nama akun saat ini."
+  if [ -z "$newBackup" ]; then
+    menu "Logs:\nNama akun tidak boleh kosong."
     return
   fi
 
-  # Memeriksa apakah input adalah angka 0
   if [[ "$newBackup" == "0" ]]; then
-    echo "Kembali ke menu..."
-    menu
+    menu # Kembali ke menu utama
     return
   fi
 
-  # Variabel direktori cadangan (pastikan sudah didefinisikan sebelumnya)
-  backup_dir="/data/local/tmp/backup"
-  data_dir="/data/data/com.mobile.legends/"
-
-  # Membuat folder cadangan
+  echo "Mencadangkan akun '$newBackup'..."
   mkdir -p "$backup_dir/$newBackup"
   cp -rp "$data_dir"/* "$backup_dir/$newBackup"
 
-  # Memeriksa hasil pembuatan folder
   if [ -d "$backup_dir/$newBackup" ]; then
-    menu "Logs:\n Akun '$newBackup' berhasil dicadangkan."
+    menu "Logs:\nAkun '$newBackup' berhasil dicadangkan."
   else
-    menu "Logs:\n Terjadi kesalahan saat membuat folder backup untuk $newBackup."
+    menu "Logs:\nTerjadi kesalahan saat mencadangkan akun '$newBackup'."
   fi
 }
 
-# Style List Account
+# Fungsi untuk menampilkan daftar akun yang dicadangkan
 function list_folders {
-  for folder_path in /data/local/tmp/backup/*/ ; do
+  for folder_path in "$backup_dir"/*/ ; do
     if [[ -d "$folder_path" ]]; then
       folder_name=$(basename "$folder_path")
       echo "${yellow}    ➤ $folder_name${reset}"
     fi
   done
 }
-# Ganti akun
+# Fungsi untuk ganti akun
 function switchAc() {
-  # Memulai ganti akun
-  su -c "am force-stop com.mobile.legends"
+  su -c "am force-stop $package_name"
   clear
   header
-  echo "Switch Account"
+  echo -e "${cyan}Ganti Akun${reset}"
   echo " "
-  echo -e "\e[96m List Account: \e[0m"
+  echo -e "${yellow}Daftar Akun:${reset}"
   list_folders
   echo " "
-  echo -e "\e[3mmasukan angka 0 untuk kembali !!\e[0m"
-  echo "┌──( Ganti ke: )"
+  echo -e "\e[3mMasukkan angka 0 untuk kembali!\e[0m"
+  echo "┌──( Ganti ke Akun: )"
   echo -n "└─❯ "
-  read folder # Memilih akun
+  read folder
 
   if [ "$folder" == "0" ] || [ -z "$folder" ]; then
-    menu "Log:\n Kembali ke menu.\n"
+    menu "Log:\nKembali ke menu."
     return
   fi
   
   if echo "$folder" | grep -q '/'; then
-    menu "Logs:\n Tidak boleh menggunakan garing(/)"
+    menu "Logs:\nNama akun tidak valid."
+    return
   fi
     
   backup_akun_dir="$backup_dir/$folder"
 
-  # Periksa apakah akun yang dipilih ada
   if [ ! -d "$backup_akun_dir" ]; then
-    menu "Log:\n Akun $folder Tidak Ditemukan\n"
+    menu "Log:\nAkun '$folder' tidak ditemukan."
     return
   fi
 
-  # Periksa apakah direktori data aplikasi ditemukan (asumsi $data_dir dan $package_name sudah didefinisikan di luar potongan ini)
   if [ -z "$data_dir" ]; then
-    menu "Log:\n Aplikasi $package_name Tidak Ditemukan!\n"
+    menu "Log:\nAplikasi '$package_name' tidak ditemukan."
     return
   fi
   
-  clear
-  echo "Memulai ganti akun ke $folder..."
-  sleep 1
-  echo "Menghapus akun lama..."
-  rm -rf "$data_dir"/*
-  rm -rf "$data_dir"/.*
-  sleep 1
-  su -c "mv /sdcard/Android/data/com.mobile.legends /sdcard/Android/data/com.mobile.legends.bb"
-  sleep 0.3
-  pm clear com.mobile.legends
-  echo "Mengganti dengan akun $folder..."
-  cp -rp "$backup_akun_dir"/* "$data_dir"/
+  local owner=$(stat -c '%u:%g' "$data_dir")
 
-  # Setel ulang kepemilikan dan permission file/folder
-  chown -R "$(stat -c "%u" /data/data)" "$(stat -c "%g" /data/data)" "$data_dir"
-  sleep 0.5
+  clear
+  echo "Memulai ganti akun ke '$folder'..."
+  sleep 1
+
+  echo "Menghapus data akun lama..."
+  su -c "pm clear $package_name"
+  if [ $? -ne 0 ]; then
+    menu "Log:\nGagal menghapus data akun lama."
+    return
+  fi
+
+  echo "Menyalin data akun '$folder'..."
+  cp -rp "$backup_akun_dir"/* "$data_dir"/
+  if [ $? -ne 0 ]; then
+    menu "Log:\nGagal menyalin data akun baru."
+    return
+  fi
+
+  echo "Menyetel ulang izin file..."
+  chown -R "$owner" "$data_dir"
   chmod -R 771 "$data_dir"
-  find "$data_dir" -type f -exec chmod 660 {} \;
-  echo "Memulihkan data..."
-  su -c "mv /sdcard/Android/data/com.mobile.legends.bb /sdcard/Android/data/com.mobile.legends"
-  sleep 0.2
-  menu "Logs :\n Berhasil mengganti ke $folder"
+
+  menu "Logs:\nBerhasil ganti ke akun '$folder'."
 }
 
+# Fungsi untuk membuat akun baru
 function newAccount() {
-  su -c "am force-stop com.mobile.legends"
+  su -c "am force-stop $package_name"
+
+  # Fungsi internal untuk proses pembuatan akun
   deleteAc(){
-    
     clear
-    echo "Memulai pembuatan akun..."
+    echo "Memulai pembuatan akun baru..."
     sleep 1.0
-    echo "Mengamankan data..."
-    su -c "mv /sdcard/Android/data/com.mobile.legends /sdcard/Android/data/com.mobile.legends.bb"
-    echo "Membersihkan GMS Core..."
-    su -c "pm clear com.google.android.gms"
-    echo "Menghapus akun lama dari folder root..."
-    su -c "pm clear com.mobile.legends"
+    echo "Mengamankan data OBB..."
+    su -c "mv /sdcard/Android/data/$package_name /sdcard/Android/data/$package_name.bak"
+    echo "Menghapus data akun lama..."
+    su -c "pm clear $package_name"
     sleep 5.0
-    su -c "mv /sdcard/Android/data/com.mobile.legends.bb /sdcard/Android/data/com.mobile.legends"
-  
+    echo "Memulihkan data OBB..."
+    su -c "mv /sdcard/Android/data/$package_name.bak /sdcard/Android/data/$package_name"
     sleep 3.0
-    menu "Logs :\n Buat akun Baru Success!"
-    
+    menu "Logs:\nBerhasil membuat akun baru!"
   }
 
   clear
-  
-  echo "( ! ) Akun yang saat ini anda gunakan akan \n      kehapus/logout\n"
-  echo ' • Apa kamu yakin?'
+  echo -e "${yellow}( ! ) Peringatan:${reset}"
+  echo "Akun yang sedang Anda gunakan akan terhapus/logout."
+  echo "Apakah Anda yakin ingin melanjutkan?"
   
   echo "┌──( Y/N: )"
   echo -n "└─❯ "
-  read lanjut # Memilih akun
+  read lanjut
 
-  # Kembali ke menu jika input adalah 0
   case "$lanjut" in
     "Y"|"y")
-      deleteAc ;; # Panggil fungsi switch
+      deleteAc ;;
     "N"|"n")
-      menu ;; # Panggil fungsi newAccount
+      menu ;;
     *)
-      menu "Logs :\n Input tidak valid.\n" ;; # Default case
+      menu "Logs:\nInput tidak valid." ;;
   esac
-
 }
 
 
-fpsUltra() {
-  su -c "am force-stop com.mobile.legends"
-  local file="/data/data/com.mobile.legends/shared_prefs/com.mobile.legends.v2.playerprefs.xml"
-
-  if [ ! -f "$file" ]; then
-    echo "Error: File '$file' tidak ditemukan."
-    return 1
-  fi
-
-  local high_fps_line='<int name="HighFpsMode" value="120" />'
-  local high_fps_see_line='<int name="HighFpsModeSee" value="4" />'
-  local best_frame_rate_line='<int name="PerformanceDevice_BestFrameRate" value="120" />'
-
-  local temp_file=$(mktemp)
-
-  echo "Mulai memproses file: $file"
-
-  while IFS= read -r line; do
-    case "$line" in
-      *"name=\"HighFpsMode\""* )
-        echo "Mengganti baris HighFpsMode"
-        echo "$high_fps_line" >> "$temp_file"
-        ;;
-      *"name=\"HighFpsModeSee\""* )
-        echo "Mengganti baris HighFpsModeSee"
-        echo "$high_fps_see_line" >> "$temp_file"
-        ;;
-      *"name=\"PerformanceDevice_BestFrameRate\""* )
-        echo "Mengganti baris PerformanceDevice_BestFrameRate"
-        echo "$best_frame_rate_line" >> "$temp_file"
-        ;;
-      "<map>" )
-        echo "Menemukan tag <map>, menambahkan baris baru"
-        echo "$line" >> "$temp_file"
-        echo "    $high_fps_line" >> "$temp_file"
-        echo "    $high_fps_see_line" >> "$temp_file"
-        echo "    $best_frame_rate_line" >> "$temp_file"
-        ;;
-      *)
-        echo "$line" >> "$temp_file"
-        ;;
-    esac
-  done < "$file"
-
-  if [ -f "$temp_file" ]; then
-    echo "File temporary berhasil dibuat: $temp_file"
-    mv "$temp_file" "$file"
-    if [ $? -eq 0 ]; then
-      echo "Berhasil mengganti file asli."
-    else
-      echo "Error saat mengganti file asli."
-    fi
-  else
-    echo "Error: File temporary tidak dibuat."
-  fi
-
-  echo "Selesai."
-}
-
-
+# Fungsi untuk menampilkan informasi kredit
 function about() {
   clear
-
   echo -e "${cyan}===========================================${reset}"
-  echo -e "${bold}                  CREDITS${reset}${cyan}         ${reset}"
+  echo -e "${bold}                  KREDIT${reset}"
   echo -e "${cyan}===========================================${reset}"
-
-  echo -e "${yellow}    MoLeTol${reset}\n"
-  echo -e "${bold} Versi           :${reset} 4.0"
+  echo -e "${yellow}    MoLeTo${reset}\n"
+  echo -e "${bold} Versi           :${reset} 5.0"
   echo -e "${bold} Dibuat oleh     :${reset} Ihsan Sungkar\n"
-
-  echo -e "${green}    Contact${reset}"
+  echo -e "${green}    Kontak${reset}"
   echo -e "${bold} Telegram        :${reset} @iCansSungkar"
   echo -e "${bold} Email           :${reset} 0014cc08ff05@gmail.com"
   echo -e "${bold} YouTube         :${reset} youtube.com/@ihsan.sungkar\n"
-
   echo -e "${purple}    Pendukung${reset}"
   echo -e "${bold} •${reset} Ramadhan Sungkar\n\n"
-
   echo -e "${cyan}===========================================${reset}"
-  echo -e "${grey}Copyright (c) 2024-2025 Ihsan Sungkar.${reset}"
-  echo -e "${grey}All Rights Reserved.${reset}\n"
-
-  echo -n "<---"
+  echo -e "${grey}Hak Cipta (c) 2024-2025 Ihsan Sungkar.${reset}"
+  echo -e "${grey}Semua Hak Dilindungi.${reset}\n"
+  echo -n "Tekan Enter untuk kembali..."
   read
   menu
-  return
 }
 
+# Fungsi untuk menampilkan informasi perangkat
 info() {
   clear
-  bold=$(echo -e "\e[1m")
-  reset=$(echo -e "\e[0m")
-  cyan=$(echo -e "\e[96m")
-  green=$(echo -e "\e[92m")
-  yellow=$(echo -e "\e[93m")
-  purple=$(echo -e "\e[95m")
-  blue=$(echo -e "\e[94m")
-  grey=$(echo -e "\e[90m")
 
-  # Function untuk mendapatkan properti dan menangani "Unknown"
+  # Fungsi internal untuk mendapatkan properti sistem
   get_prop() {
-    local prop_name="$1"
-    local value
-    value=$(su -c "getprop '$prop_name'" 2>/dev/null)
-    if [ -z "$value" ]; then
-      echo "Unknown"
-    else
-      echo "$value"
-    fi
+    su -c "getprop '$1'" 2>/dev/null || echo "Tidak diketahui"
   }
 
-  # Function untuk mendapatkan informasi baterai dari sysfs
+  # Fungsi internal untuk mendapatkan informasi baterai
   get_battery_info() {
-    local path="$1"
-    local value
-    value=$(cat "$path" 2>/dev/null)
-    if [ -z "$value" ]; then
-      echo "Unknown"
-    else
-      echo "$value"
-    fi
+    cat "$1" 2>/dev/null || echo "Tidak diketahui"
   }
 
-  # Function untuk mendapatkan level baterai (nilai saja)
   get_battery_level() {
-    su -c "dumpsys battery | grep 'level:' | awk '{print $2}'" 2>/dev/null || get_battery_info /sys/class/power_supply/*/capacity
+    su -c "dumpsys battery | grep 'level:' | awk '{print \$2}'" 2>/dev/null || get_battery_info /sys/class/power_supply/*/capacity
   }
 
-  # Function untuk mendapatkan suhu baterai (nilai saja)
   get_battery_temperature() {
-    su -c "dumpsys battery | grep 'temperature:' | awk '{print $2}'" 2>/dev/null || get_battery_info /sys/class/power_supply/*/temp
+    local temp=$(su -c "dumpsys battery | grep 'temperature:' | awk '{print \$2}'" 2>/dev/null || get_battery_info /sys/class/power_supply/*/temp)
+    if [ -n "$temp" ]; then
+      echo "$((temp / 10)) C"
+    else
+      echo "Tidak diketahui"
+    fi
   }
 
-  # Function untuk mendapatkan RAM Size (dalam GB)
   get_ram_size() {
-    local ram_raw=$(su -c "cat /proc/meminfo | grep 'MemTotal:' | awk '{gsub(/[^0-9]/, "", \$2); print \$2}'" 2>/dev/null)
-    if [ -n "$ram_raw" ]; then
-      local ram_gb=$((ram_raw / (1024 * 1024)))
-      echo "$ram_gb GB"
+    local ram_kb=$(su -c "cat /proc/meminfo | grep 'MemTotal:' | awk '{print \$2}'" 2>/dev/null)
+    if [ -n "$ram_kb" ]; then
+      echo "$((ram_kb / 1024 / 1024)) GB"
     else
-      echo "Unknown"
+      echo "Tidak diketahui"
     fi
   }
 
-  # Function untuk mendapatkan nama GPU (mencoba beberapa properti umum)
   get_gpu_info() {
-    local gpu=$(get_prop ro.opengles.version)
-    if [[ "$gpu" != "Unknown" ]]; then
-      # Coba ekstrak nama vendor dan model sederhana
-      case "$gpu" in
-        *"Mali"*) echo "$(echo "$gpu" | grep -o "Mali-[A-Z0-9]\+")";;
-        *"Adreno"*) echo "$(echo "$gpu" | grep -o "Adreno[ ]*[0-9]\+")";;
-        *"PowerVR"*) echo "$(echo "$gpu" | grep -o "PowerVR[ ]*GE[0-9]\+")";;
-        *) echo "$gpu";; # Kembalikan nilai mentah jika tidak dikenali
-      esac
-    else
-      echo "Unknown"
-    fi
+    get_prop ro.opengles.version | sed 's/.*(GPU-//; s/).*//' || echo "Tidak diketahui"
   }
 
-  # Lebar maksimum untuk label
   label_width=20
-
   print_labeled_value() {
-    local label="$1"
-    local value="$2"
-    printf "%-${label_width}s : %s\n" "${bold}${cyan}${label}${reset}" "${green}${value}${reset}"
+    printf "%-${label_width}s : %s\n" "${bold}${cyan}$1${reset}" "${green}$2${reset}"
   }
-
   print_section_title() {
     echo -e "${bold}${blue}$1${reset}"
   }
 
   echo ""
-  print_labeled_value "$(get_prop ro.product.brand) $(get_prop ro.product.model)"
+  print_labeled_value "Perangkat" "$(get_prop ro.product.brand) $(get_prop ro.product.model)"
   echo ""
-
   print_labeled_value "Versi Android" "$(get_prop ro.build.version.release)"
   print_labeled_value "Model" "$(get_prop ro.product.model)"
   echo ""
-
-  print_section_title "Display"
+  print_section_title "Tampilan"
   print_labeled_value "GPU" "$(get_gpu_info)"
-  print_labeled_value "Max frequency" "$(cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq 2>/dev/null | sed 's/\(.\)..\?$/\1 GHz/' || echo "Unknown")"
-  resolution=$(su -c "wm size" 2>/dev/null | awk '{print $3}' || echo "Unknown")
-  print_labeled_value "Resolution" "$resolution"
-  density=$(su -c "wm density" 2>/dev/null | awk '{print $3}' || echo "Unknown")
-  print_labeled_value "Screen Density" "$density"
-  print_labeled_value "Frame rate" "60Hz" # Asumsi default 60Hz
+  print_labeled_value "Frekuensi CPU Maks" "$(cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq 2>/dev/null | sed 's/\(.\)..\?$/\1 GHz/' || echo "Tidak diketahui")"
+  print_labeled_value "Resolusi" "$(su -c "wm size" 2>/dev/null | awk '{print $3}' || echo "Tidak diketahui")"
+  print_labeled_value "Kepadatan Layar" "$(su -c "wm density" 2>/dev/null | awk '{print $3}' || echo "Tidak diketahui")"
   echo ""
-
-  print_section_title "Battery"
-  print_labeled_value "Battery Level" "$(get_battery_level)%"
-  temperature=$(get_battery_temperature)
-  if [[ "$temperature" != "Unknown" ]]; then
-    print_labeled_value "Temperature" "$temperature C"
-  else
-    print_labeled_value "Temperature" "Unknown"
-  fi
-  print_labeled_value "Technology" "$(get_prop ro.power_supply.technology || get_battery_info /sys/class/power_supply/*/technology)"
-  capacity_raw=$(su -c "dumpsys battery | grep 'charge counter:' | awk '{print $3}'" 2>/dev/null || get_battery_info /sys/class/power_supply/*/charge_full)
-  if [ "$capacity_raw" != "Unknown" ]; then
-    capacity_mah=$((capacity_raw / 1000))
-    print_labeled_value "Capacity" "${capacity_mah} mAh"
-  else
-    print_labeled_value "Capacity" "Unknown"
-  fi
+  print_section_title "Baterai"
+  print_labeled_value "Level Baterai" "$(get_battery_level)%"
+  print_labeled_value "Suhu" "$(get_battery_temperature)"
+  print_labeled_value "Teknologi" "$(get_battery_info /sys/class/power_supply/*/technology)"
+  print_labeled_value "Kapasitas" "$(( $(get_battery_info /sys/class/power_supply/*/charge_full) / 1000 )) mAh"
   echo ""
-
-  print_section_title "Memory"
-  print_labeled_value "RAM Size" "$(get_ram_size)"
-  print_labeled_value "Type" "Unknown" # Sulit didapatkan secara umum
+  print_section_title "Memori"
+  print_labeled_value "Ukuran RAM" "$(get_ram_size)"
   echo ""
-
-  print_section_title "Hardware"
-  print_labeled_value "Processor" "$(get_prop ro.soc.manufacturer) ($(get_prop ro.board.platform))"
-  print_labeled_value "CPU" "$(get_prop ro.product.cpu.abi)"
-  print_labeled_value "Architecture" "$(get_prop ro.arch)"
-  print_labeled_value "ABI" "$(get_prop ro.product.cpu.abi)"
+  print_section_title "Perangkat Keras"
+  print_labeled_value "Prosesor" "$(get_prop ro.soc.manufacturer) ($(get_prop ro.board.platform))"
+  print_labeled_value "Arsitektur CPU" "$(get_prop ro.product.cpu.abi)"
   echo ""
-  echo -n "<-back"
+  echo -n "Tekan Enter untuk kembali..."
   read
   menu
 }
 
+# Fungsi untuk membersihkan cache dan log
 function clean(){
   clear
+  echo "Memulai pembersihan..."
   sleep 0.3
-  rm -rf "/storage/emulated/0/Android/data/com.mobile.legends/cache/"
+  rm -rf "/storage/emulated/0/Android/data/$package_name/cache/"
   echo "Menghapus Cache..."
   sleep 0.5
-  rm -rf "/storage/emulated/0/Android/data/com.mobile.legends/files/UnityCache/"
+  rm -rf "/storage/emulated/0/Android/data/$package_name/files/UnityCache/"
   echo "Menghapus Unity Cache..."
-  sleep 2
-  rm -rf "/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017/OfflineReport/"
-  echo "Menghapus Offline Report"
   sleep 1
-  rm -rf "/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017/FightHistory/"
-  echo "Menghapus History Fight..."
+  rm -rf "/data/data/$package_name/cache/"
+  rm -rf "/data/data/$package_name/files/rtc_log/"
+  echo "Menghapus Cache di folder root!"
   sleep 0.5
-  rm -rf "/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017/BattleRecord/"
-  echo "Menghapus Battle Record..."
-  sleep 0.7
-  rm -rf "/data/data/com.mobile.legends/cache/"
-  rm -rf "/data/data/com.mobile.legends/files/rtc_log/"
-  echo "Menghapus Cache di Folder Root !"
-  sleep 0.5
-  rm -rf "/data/data/com.mobile.legends/databases/LoggerDatabase"
-  rm -rf "/data/data/com.mobile.legends/databases/LoggerDatabase-journal"
+  rm -rf "/data/data/$package_name/databases/LoggerDatabase"
+  rm -rf "/data/data/$package_name/databases/LoggerDatabase-journal"
   echo "Menghapus Log Database..."
-  sleep 0.7
-  rm -rf "/data/user/0/com.mobile.legends/databases/ss_app_log.db"
-  rm -rf "/data/user/0/com.mobile.legends/databases/ss_app_log.db-journal"
-  echo "Menghapus 'ss_app_log' di Folder root... "
   sleep 0.5
-  rm -rf "/data/user/0/com.mobile.legends/files/npth/"
-  echo "Menghapus npth..."
-  sleep 0.7
   echo "__________________________________________________"
-  echo "Berhasil!..."
-  menu "Berhasil Membersihkan!..."
+  echo "Pembersihan Selesai!"
+  sleep 1
+  menu "Berhasil membersihkan!"
 }
 
-#!/bin/bash
-
-# Variabel untuk path backup dan output
-backup_dir="/data/local/tmp/backup"
-output_tar_gz="/sdcard/Downloads/AkunML.tar.gz"
-output_tar="/sdcard/Download/AkunML.tar" # File tar sementara
-
-# Fungsi untuk mengkompres semua file di $backup_dir menjadi $output_tar_gz
-exprt() {
+# Fungsi untuk mengekspor data backup
+function exprt() {
+  local output_tar_gz="/sdcard/Downloads/AkunML_$(date +%Y%m%d).tar.gz"
   clear
-  echo "Buat salinan semua akun yang pernah di backup untuk di pindahkan ke folder Downloads?\n\n"
-  echo "0. back"
-  echo -e "${green}┌──( Next: )"
+  echo "Anda akan mengekspor semua akun ke file:"
+  echo -e "${yellow}$output_tar_gz${reset}\n"
+  echo "Lanjutkan?"
+  echo "0. Kembali"
+  echo -e "${green}┌──( Y/N: )"
   echo -n "└─❯ "
   read conf
-  if [ "$conf" == "0" ]; then
-    menu "Export dibatalkan"
-    return 0 # Mengembalikan status sukses karena pembatalan bukan error
+
+  if [[ "$conf" != "Y" && "$conf" != "y" ]]; then
+    menu "Ekspor dibatalkan."
+    return
   fi
 
-  # Pastikan direktori backup ada
-  if [ ! -d "$backup_dir" ]; then
-    echo "Error: Direktori backup '$backup_dir' tidak ditemukan."
-    return 1
+  if [ ! -d "$backup_dir" ] || [ -z "$(ls -A "$backup_dir")" ]; then
+    menu "Error: Direktori backup '$backup_dir' tidak ada atau kosong."
+    return
   fi
 
-  # Pastikan direktori output dapat diakses (mencoba membuatnya jika tidak ada)
-  if [ ! -d "$(dirname "$output_tar")" ]; then
-    echo "Direktori Download tidak ditemukan, mencoba membuatnya..."
-    mkdir -p "$(dirname "$output_tar")"
-    if [ $? -ne 0 ]; then
-      menu "Error: \n Gagal membuat Direktori $(dirname "$output_tar")'."
-    fi
-  fi
-
-  cd "$backup_dir" || { echo "Error: Gagal masuk ke direktori '$backup_dir'."; return 1; }
-  tar -cvf "$output_tar" *
+  echo "Mengompres data..."
+  tar -czvf "$output_tar_gz" -C "$backup_dir" .
   if [ $? -eq 0 ]; then
-    echo "Berhasil mengarsipkan file ke '$output_tar'."
-    gzip "$output_tar"
-    if [ $? -eq 0 ]; then
-      echo "Berhasil mengkompres arsip menjadi '$output_tar_gz'."
-      rm "$output_tar" # Hapus file .tar sementara
-    else
-      echo "Gagal mengkompres arsip."
-      rm "$output_tar" # Bersihkan file .tar jika kompresi gagal
-      return 1
-    fi
+    menu "Logs:\nBerhasil ekspor ke '$output_tar_gz'."
   else
-    menu "Logs: \n Gagal mengarsipkan file."
+    menu "Logs:\nGagal mengekspor data."
   fi
-  cd - > /dev/null # Kembali ke direktori sebelumnya
 }
 
-# Fungsi untuk mengekstrak file $output_tar_gz ke $backup_dir
-imprt() {
+# Fungsi untuk mengimpor data backup
+function imprt() {
+  local default_path="/sdcard/Downloads/"
   clear
-  echo "Memulai proses dekompresi..."
-  if [ -f "$output_tar_gz" ]; then
-    gzip -d -c "$output_tar_gz" | tar -xvf - -C "$backup_dir"
-    if [ $? -eq 0 ]; then
-      menu "Logs: \n Berhasil mengekstrak file dari '$output_tar_gz' ke '$backup_dir'."
-    else
-      menu "Logs: \n Gagal mengekstrak file."
+  echo "Masukkan path lengkap ke file .tar.gz yang ingin diimpor,"
+  echo "atau tekan Enter untuk mencari di direktori default:"
+  echo -e "(${yellow}$default_path${reset})"
+  echo -n "└─❯ "
+  read file_path
+
+  if [ -z "$file_path" ]; then
+    file_path=$(find "$default_path" -name "AkunML*.tar.gz" | head -n 1)
+    if [ -z "$file_path" ]; then
+        menu "Error:\nTidak ada file backup 'AkunML*.tar.gz' yang ditemukan di '$default_path'."
+        return
     fi
+    echo "File ditemukan: $file_path"
+  fi
+
+  if [ ! -f "$file_path" ]; then
+    menu "Error:\nFile '$file_path' tidak ditemukan."
+    return
+  fi
+
+  echo "Mengekstrak data..."
+  tar -xzvf "$file_path" -C "$backup_dir"
+  if [ $? -eq 0 ]; then
+    menu "Logs:\nBerhasil impor dari '$file_path'."
   else
-    menu "Error:\n File '$output_tar_gz' tidak ditemukan."
+    menu "Logs:\nGagal mengimpor data."
   fi
 }
 
+# Fungsi untuk menghapus akun dari backup
 function hapusAkun(){
-
   remover(){
-    echo "Memulai menghapus $1. Please wait..."
+    echo "Menghapus akun '$1'. Mohon tunggu..."
     rm -rf "$backup_dir/$1"
     if [ $? -eq 0 ]; then
-      echo "Akun $1 berhasil dihapus."
+      menu "Akun '$1' berhasil dihapus."
     else
-      menu "Logs:\n Gagal menghapus $1."
+      menu "Logs:\nGagal menghapus '$1'."
     fi
   }
 
-  su -c "am force-stop com.mobile.legends"
+  su -c "am force-stop $package_name"
   clear
   header
-  echo "Remove Account"
+  echo -e "${cyan}Hapus Akun${reset}"
   echo " "
-  echo -e "\e[96m List Account: \e[0m"
+  echo -e "${yellow}Daftar Akun:${reset}"
   list_folders
   echo " "
-  echo -e "\e[3m$1 \e[0m"               # <--- Log
-  
-  echo -e "\e[3mmasukan angka 0 untuk kembali !!\e[0m"
-  echo "┌──( Akun Yang Ingin diHapus: )"
+  echo -e "\e[3m$1 \e[0m"
+  echo -e "\e[3mMasukkan angka 0 untuk kembali!\e[0m"
+  echo "┌──( Akun yang Ingin Dihapus: )"
   echo -n "└─❯ "
   read hapus 
   
   if echo "$hapus" | grep -q '/'; then
-    hapusAkun "Logs: \n Tidak boleh menggunakan (/)"
+    hapusAkun "Logs:\nTidak boleh menggunakan karakter '/'."
+    return
   fi
   
   case "$hapus" in
-    "n"|0|""|" ")
+    "0"|"")
       menu ;;
     *)
-      if [ ! -d "$hapus" ]; then
-        menu "Logs: \n Akun $hapus tidak ditemukan."
+      if [ ! -d "$backup_dir/$hapus" ]; then
+        menu "Logs:\nAkun '$hapus' tidak ditemukan."
+        return
       fi
       remover "$hapus";;
     esac  
 }
 
+# Menu untuk fitur tambahan
 function more(){
-  clear # :P
+  clear
   header
   echo ""
-  echo -e "${bold}${blue} Mobile Legends Tools 4.0 "
+  echo -e "${bold}${blue} Mobile Legends Tools 5.0 ${reset}"
   sleep 0.05
-  echo -e "${cyan}    6 . Unlock FPS Ultra"         # <--- switchAc()
+  echo -e "${cyan}    6 . Buka FPS Ultra"
   sleep 0.05
-  echo "    7 . Clean Log & Cache ML"         # <--- backup()
+  echo "    7 . Bersihkan Log & Cache ML"
   sleep 0.05
-  echo -e "    8 . Devices Information${reset}\n" # <--- newAccount()
+  echo -e "    8 . Informasi Perangkat${reset}\n"
   sleep 0.05
-  echo -e "${yellow}    9 . Export data"
-  echo -e "    10. Import data ${reset}\n"
+  echo -e "${yellow}    9 . Ekspor Data"
+  echo -e "    10. Impor Data${reset}\n"
+  echo "    0 . Kembali"
+  sleep 0.05
   
-  echo "    0. back"
-  sleep 0.05
-  
-  
-  echo -e "\e[3m$1 \e[0m"               # <--- Logs
-  echo -e "${green}┌──( Input Number: )"
+  echo -e "\e[3m$1 \e[0m"
+  echo -e "${green}┌──( Masukkan Nomor: )"
   echo -n "└─❯ " 
-  # get input
   read selMore
   case "$selMore" in
     0|00)
-      menu
-      ;;
-    5|6|7|8|9)
-      main "$selMore"
-      ;;
+      menu ;;
+    6|7|8|9|10)
+      main "$selMore" ;;
     *)
-      more
-      ;;
+      more "Logs:\nInput tidak valid." ;;
   esac
 }
 
-
+# Fungsi utama untuk routing
 function main() {
   case "$1" in
-    1)
-      switchAc ;; # --> switch
-    2)
-      backup ;; # --> backup
-    3)
-      newAccount ;; # --> newAccount
-    4)
-      hapusAkun ;;  
-    5)
-      more ;;  # --> more
-    6)
-      editFPS ;;  # -- editFPS
-    7)
-      clean ;;  # -- clean
-    8)
-      info ;;  # --> info
-    9)
-      exprt ;;
-    9)
-      imprt ;;
-    99)
-      about ;; # --> about
+    1) switchAc ;;
+    2) backup ;;
+    3) newAccount ;;
+    4) hapusAkun ;;
+    5) more ;;
+    6) editFPS ;;
+    7) clean ;;
+    8) info ;;
+    9) exprt ;;
+    10) imprt ;;
+    99) about ;;
     0|00)  
       clear
-      echo " Thanks You So Much ! "
-      echo " Bye Bye !! "
-      time
-      exit &>/dev/null ;;
+      echo " Terima Kasih Banyak! "
+      echo " Sampai Jumpa !! "
+      exit 0 ;;
     *)
-      menu "Logs :\n Input tidak valid.\n" ;; # Default case
+      menu "Logs:\nInput tidak valid." ;;
   esac
-  
 }
 
-# Memulai Skrip dengan input
-
+# Menu utama
 function menu(){
-  clear # :P
+  clear
   header
   echo ""
- 
   sleep 0.05
-  echo -e "${bold}${blue} Mobile Legends Tools 4.0"
+  echo -e "${bold}${blue} Mobile Legends Tools 5.0${reset}"
   sleep 0.05
-  echo -e "${cyan}    1. Switch Account"         # <--- switchAc()
+  echo -e "${cyan}    1. Ganti Akun"
   sleep 0.05
-  echo "    2. Backup Account"         # <--- backup()
+  echo "    2. Cadangkan Akun"
   sleep 0.05
-  echo "    3. Create New Account" # <--- newAccount()
+  echo "    3. Buat Akun Baru"
   sleep 0.05
-  echo -e "    4. Remove Account${reset}"
-  echo -e "${green}    5. More Features -->${reset}" # <----- more()
+  echo -e "    4. Hapus Akun${reset}"
+  sleep 0.05
+  echo -e "${green}    5. Fitur Lainnya -->${reset}"
   sleep 0.05
   echo -e "  ─────────────────────────────────────"
   sleep 0.05
-  echo "    99. About"
+  echo "    99. Tentang"
   sleep 0.05
-  echo "    00. Exit"
+  echo "    00. Keluar"
   sleep 0.05
   echo " "
-  echo -e "\e[3m$1 \e[0m"               # <--- Log
+  echo -e "\e[3m$1 \e[0m"
   
-  echo -e "${green}┌──( Input Number: )"
-  echo -n "└─❯ "  # Menggunakan echo -n untuk tidak menambahkan newline
+  echo -e "${green}┌──( Masukkan Nomor: )"
+  echo -n "└─❯ "
   
   read select
   case "$select" in
-    0|1|2|3|4|5|99)
-      main "$select"
-      ;;
+    1|2|3|4|5|99|0|00)
+      main "$select" ;;
     *)
-      menu "Logs: \nInvalid input."
-      ;;
+      menu "Logs:\nInput tidak valid." ;;
   esac
 }
 
