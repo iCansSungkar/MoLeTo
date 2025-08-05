@@ -577,7 +577,7 @@ function menu(){
 # Alhamdulilla Beres
 # Jangan Lupa Bersyukur kepada Allah Swt yang telah memberikan ilmu yang bermanfaat
 # Code by Ihsan Sungkar
-
+ 
 # Contact :
 #   WhatsApp  : 0838 0941 9831
 #   Instagram : kitsune.mask_
