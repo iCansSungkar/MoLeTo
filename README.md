@@ -20,7 +20,7 @@ bash < <(curl -s  https://raw.githubusercontent.com/iCansSungkar/MoLeTo/refs/hea
 ```
 or
 ```bash
-curl -s [http://mywebsite.example/myscript.txt](https://raw.githubusercontent.com/iCansSungkar/MoLeTo/refs/heads/main/MoLeTo.sh) | bash -s -- 
+curl -s https://raw.githubusercontent.com/iCansSungkar/MoLeTo/refs/heads/main/MoLeTo.sh | bash -s -- 
 ```
 
 ## DISCLAIMER
