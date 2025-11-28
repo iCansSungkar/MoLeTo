@@ -14,9 +14,13 @@
 </div>
 
 ## Usage
-Run this script at the terminal
-``` shell
-su -c ./MoLeTo.sh
+Run this script at the terminal Android
+```bash
+bash < <(curl -s  https://raw.githubusercontent.com/iCansSungkar/MoLeTo/refs/heads/main/MoLeTo.sh
+```
+or
+```bash
+curl -s [http://mywebsite.example/myscript.txt](https://raw.githubusercontent.com/iCansSungkar/MoLeTo/refs/heads/main/MoLeTo.sh) | bash -s -- 
 ```
 
 ## DISCLAIMER
