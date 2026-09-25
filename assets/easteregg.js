@@ -237,8 +237,12 @@
         var tag = tagName(el);
         if (SKIP_TAGS[tag]) return null;
         if (typeof el.className == 'string' && el.className.indexOf('KICKASSELEMENT') != -1) return null;
-        if (isSvg(el)) return { type: 'solid', label: 'ikon SVG' };
-        if (SOLID_TAGS[tag]) return { type: 'solid', label: solidLabel(tag) };
+        if (el == document.documentElement || el == document.body) {
+            // body/html tidak boleh jadi rintangan; teksnya saja yang bisa dimakan
+            return hasDirectText(el) ? { type: 'food-bg', el: el, label: 'teks latar' } : null;
+        }
+        if (isSvg(el)) return { type: 'solid', el: el, label: 'ikon SVG' };
+        if (SOLID_TAGS[tag]) return { type: 'solid', el: el, label: solidLabel(tag) };
         var style;
         try { style = window.getComputedStyle(el); } catch (e) { return null; }
         if (!style || style.visibility == 'hidden' || style.display == 'none') return null;
@@ -246,12 +250,12 @@
         if (rect.width < 2 || rect.height < 2) return null;
         var text = hasDirectText(el);
         if (isHuge(rect, vw, vh)) {
-            return text ? { type: 'food-bg', label: 'teks latar' } : null;
+            return text ? { type: 'food-bg', el: el, label: 'teks latar' } : null;
         }
         if (solidByStyle(style)) {
-            return { type: 'solid', label: SOLID_TAGS[tag] ? solidLabel(tag) : 'kotak <' + tag.toLowerCase() + '>' };
+            return { type: 'solid', el: el, label: SOLID_TAGS[tag] ? solidLabel(tag) : 'kotak <' + tag.toLowerCase() + '>' };
         }
-        if (text) return { type: 'food', label: 'teks' };
+        if (text) return { type: 'food', el: el, label: 'teks' };
         return null;
     }
 
@@ -600,11 +604,16 @@
             if (tdelta > 0.1) tdelta = 0.1;
             if (tdelta <= 0) tdelta = 0.001;
             this.updateWindowInfo();
-            if (this.state == 'playing') this.snake.update(tdelta);
-            this.explosionManager.update(tdelta);
+            try {
+                if (this.state == 'playing') this.snake.update(tdelta);
+                this.explosionManager.update(tdelta);
+            } catch (err) {
+                if (!this._errLogged) { this._errLogged = true; console.error('[SnakeAss]', err); }
+            }
             this.ui.updateScore();
         },
         snakeAte: function(el, textOnly) {
+            if (!el || el.nodeType !== 1) return
             var text = directText(el);
             var ok = false;
             try {
